@@ -1,7 +1,7 @@
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import './SensorCard.css';
 
-function SensorCard({ title, value, unit, icon, color, trend, isBoolean }) {
+function SensorCard({ title, value, unit, icon, color, trend, isBoolean, subtitle }) {
   const trendValue = parseFloat(trend);
   const isPositiveTrend = trendValue > 0;
 
@@ -11,7 +11,10 @@ function SensorCard({ title, value, unit, icon, color, trend, isBoolean }) {
         <div className="sensor-icon" style={{ background: `${color}20`, color }}>
           {icon}
         </div>
-        <h3 className="sensor-title">{title}</h3>
+        <div>
+          <h3 className="sensor-title">{title}</h3>
+          {subtitle && <p className="sensor-subtitle">{subtitle}</p>}
+        </div>
       </div>
 
       <div className="sensor-value-container">

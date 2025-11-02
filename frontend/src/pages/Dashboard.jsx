@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Activity, Droplets, Thermometer, AlertCircle, TrendingUp, Eye } from 'lucide-react';
+import { Activity, Droplets, Thermometer, AlertCircle, TrendingUp, Eye, Warehouse, Database } from 'lucide-react';
 import SensorCard from '../components/SensorCard';
 import ChartCard from '../components/ChartCard';
 import AlertsList from '../components/AlertsList';
-import SensorVisualization3D from '../components/SensorVisualization3D';
+// import SensorVisualization3D from '../components/SensorVisualization3D';
 import { getSensorData, getLatestData, getAlerts } from '../services/api';
 import './Dashboard.css';
 
@@ -45,7 +45,7 @@ function Dashboard() {
   };
 
   const connectWebSocket = () => {
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws';
+    const wsUrl = import.meta.env.VITE_WS_URL || 'wss://grain-backend-kw0o.onrender.com';
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
@@ -89,29 +89,29 @@ function Dashboard() {
   const activeAlerts = alerts.filter(a => a.status === 'active');
 
   return (
-    <div className="dashboard">
+    <div className="dashboard grain-theme">
       {/* Header */}
       <header className="dashboard-header">
         <div className="container">
           <div className="header-content">
             <div>
               <h1>
-                <Activity className="header-icon" />
-                ESP32 IoT Dashboard
+                <Warehouse className="header-icon" />
+                Smart Grain Storage System
               </h1>
               <p className="header-subtitle">
-                Real-time sensor monitoring with Telegram alerts
+                Real-time grain storage monitoring with intelligent alerts
               </p>
             </div>
             <div className="header-status">
               <div className={`status-badge ${wsConnected ? 'connected' : 'disconnected'}`}>
                 <span className="status-dot"></span>
-                {wsConnected ? 'Live' : 'Offline'}
+                {wsConnected ? 'Live Monitoring' : 'Offline'}
               </div>
               {activeAlerts.length > 0 && (
                 <div className="alert-badge">
                   <AlertCircle size={16} />
-                  {activeAlerts.length} Active Alerts
+                  {activeAlerts.length} Storage Alerts
                 </div>
               )}
             </div>
@@ -123,53 +123,64 @@ function Dashboard() {
         {/* Sensor Cards */}
         <section className="sensor-grid">
           <SensorCard
-            title="Temperature"
+            title="Storage Temperature"
             value={latestData?.data?.temperature || latestData?.temperature || 0}
             unit="°C"
             icon={<Thermometer />}
-            color="#ef4444"
+            color="#f59e0b"
             trend={calculateTrend(historicalData, 'temperature')}
+            subtitle="Grain temperature"
           />
           <SensorCard
-            title="Humidity"
+            title="Storage Humidity"
             value={latestData?.data?.humidity || latestData?.humidity || 0}
             unit="%"
             icon={<Droplets />}
             color="#3b82f6"
             trend={calculateTrend(historicalData, 'humidity')}
+            subtitle="Moisture level"
           />
           <SensorCard
-            title="Motion Sensor"
-            value={latestData?.data?.motion || latestData?.motion ? 'Detected' : 'None'}
+            title="Motion Detection"
+            value={latestData?.data?.motion || latestData?.motion ? 'Detected' : 'Clear'}
             unit=""
             icon={<Eye />}
-            color="#8b5cf6"
+            color="#10b981"
             isBoolean={true}
+            subtitle="Security status"
+          />
+          <SensorCard
+            title="Storage Status"
+            value={getStorageStatus(latestData)}
+            unit=""
+            icon={<Database />}
+            color="#8b5cf6"
+            subtitle="Overall condition"
           />
         </section>
 
-        {/* 3D Visualization */}
-        <section className="visualization-section">
+        {/* 3D Visualization - Temporarily disabled */}
+        {/* <section className="visualization-section">
           <div className="card">
             <h2 className="section-title">
-              <TrendingUp size={20} />
-              3D Sensor Visualization
+              <Warehouse size={20} />
+              Grain Storage 3D View
             </h2>
             <SensorVisualization3D data={latestData?.data || latestData} />
           </div>
-        </section>
+        </section> */}
 
         {/* Charts */}
         <section className="charts-section">
           <ChartCard
-            title="Temperature History"
+            title="Temperature Monitoring"
             data={historicalData}
             dataKey="temperature"
-            color="#ef4444"
+            color="#f59e0b"
             unit="°C"
           />
           <ChartCard
-            title="Humidity History"
+            title="Humidity Tracking"
             data={historicalData}
             dataKey="humidity"
             color="#3b82f6"
@@ -183,7 +194,7 @@ function Dashboard() {
             <div className="card">
               <h2 className="section-title">
                 <AlertCircle size={20} />
-                Recent Alerts
+                Storage Alerts & Warnings
               </h2>
               <AlertsList alerts={alerts} />
             </div>
@@ -192,6 +203,18 @@ function Dashboard() {
       </div>
     </div>
   );
+}
+
+// Helper function to calculate storage status
+function getStorageStatus(data) {
+  if (!data) return 'Unknown';
+  const temp = data?.data?.temperature || data?.temperature || 0;
+  const humidity = data?.data?.humidity || data?.humidity || 0;
+  
+  if (temp > 35 || humidity > 70) return 'Critical';
+  if (temp > 30 || humidity > 60) return 'Warning';
+  if (temp < 15 || humidity < 30) return 'Suboptimal';
+  return 'Optimal';
 }
 
 // Helper function to calculate trend

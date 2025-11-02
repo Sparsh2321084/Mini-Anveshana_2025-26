@@ -50,6 +50,14 @@
   font-size: 1rem;
   font-weight: 600;
   color: var(--text);
+  margin: 0;
+}
+
+.sensor-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin: 2px 0 0 0;
+  opacity: 0.8;
 }
 
 .sensor-value-container {
