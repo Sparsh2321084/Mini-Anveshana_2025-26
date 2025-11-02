@@ -93,31 +93,42 @@ exports.receiveSensorData = async (req, res) => {
  * Get latest sensor data
  */
 exports.getLatestData = async (req, res) => {
-  try {
-    if (!latestSensorData.deviceId) {
-      return res.status(404).json({
-        error: 'No data available yet',
-        message: 'Waiting for ESP32 to send data'
+  // If called directly (not from Telegram), handle as HTTP response
+  if (res) {
+    try {
+      if (!latestSensorData.deviceId) {
+        return res.status(404).json({
+          error: 'No data available yet',
+          message: 'Waiting for ESP32 to send data'
+        });
+      }
+      
+      res.json({
+        success: true,
+        data: {
+          deviceId: latestSensorData.deviceId,
+          temperature: latestSensorData.temperature,
+          humidity: latestSensorData.humidity,
+          motion: latestSensorData.motion,
+          timestamp: latestSensorData.timestamp
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching latest data:', error);
+      res.status(500).json({
+        error: 'Failed to fetch data',
+        message: error.message
       });
     }
-    
-    res.json({
-      success: true,
-      data: {
-        deviceId: latestSensorData.deviceId,
-        temperature: latestSensorData.temperature,
-        humidity: latestSensorData.humidity,
-        motion: latestSensorData.motion,
-        timestamp: latestSensorData.timestamp
-      }
-    });
-    
-  } catch (error) {
-    console.error('Error fetching latest data:', error);
-    res.status(500).json({
-      error: 'Failed to fetch data',
-      message: error.message
-    });
+  } else {
+    // Called from Telegram service - return data directly
+    return latestSensorData.deviceId ? {
+      deviceId: latestSensorData.deviceId,
+      temperature: latestSensorData.temperature,
+      humidity: latestSensorData.humidity,
+      motion: latestSensorData.motion,
+      timestamp: latestSensorData.timestamp
+    } : null;
   }
 };
 

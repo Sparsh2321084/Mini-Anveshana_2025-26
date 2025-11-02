@@ -1,28 +1,26 @@
 /**
- * Alert Service
+ * Alert Service - Simplified (No Database)
  * 
- * Handles threshold checking and alert creation
+ * Handles threshold checking and Telegram notifications
  */
 
-const Alert = require('../models/Alert');
-const AlertConfig = require('../models/AlertConfig');
 const { sendTelegramAlert } = require('./telegramService');
+
+// In-memory tracking to avoid spam (store recent alerts)
+const recentAlerts = new Map();
+const ALERT_COOLDOWN = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Check if sensor data exceeds thresholds
  */
 async function checkThresholds(sensorData) {
   try {
-    // Get alert configuration
-    const config = await AlertConfig.findOne({ 
-      deviceId: sensorData.deviceId 
-    }) || await AlertConfig.findOne({ deviceId: 'default' });
-    
-    const thresholds = config?.thresholds || {
+    // Get thresholds from environment variables
+    const thresholds = {
       temperatureHigh: parseFloat(process.env.TEMP_HIGH_THRESHOLD) || 35,
-      temperatureLow: parseFloat(process.env.TEMP_LOW_THRESHOLD) || 10,
-      humidityHigh: parseFloat(process.env.HUMIDITY_HIGH_THRESHOLD) || 80,
-      humidityLow: parseFloat(process.env.HUMIDITY_LOW_THRESHOLD) || 20,
+      temperatureLow: parseFloat(process.env.TEMP_LOW_THRESHOLD) || 15,
+      humidityHigh: parseFloat(process.env.HUMIDITY_HIGH_THRESHOLD) || 70,
+      humidityLow: parseFloat(process.env.HUMIDITY_LOW_THRESHOLD) || 30,
       motionDetection: process.env.MOTION_DETECTION !== 'false'
     };
     
@@ -37,7 +35,7 @@ async function checkThresholds(sensorData) {
         value: sensorData.temperature,
         threshold: thresholds.temperatureHigh
       });
-      alerts.push(alert);
+      if (alert) alerts.push(alert);
     }
     
     // Check temperature low
@@ -49,7 +47,7 @@ async function checkThresholds(sensorData) {
         value: sensorData.temperature,
         threshold: thresholds.temperatureLow
       });
-      alerts.push(alert);
+      if (alert) alerts.push(alert);
     }
     
     // Check humidity high
@@ -61,7 +59,7 @@ async function checkThresholds(sensorData) {
         value: sensorData.humidity,
         threshold: thresholds.humidityHigh
       });
-      alerts.push(alert);
+      if (alert) alerts.push(alert);
     }
     
     // Check humidity low
@@ -73,7 +71,7 @@ async function checkThresholds(sensorData) {
         value: sensorData.humidity,
         threshold: thresholds.humidityLow
       });
-      alerts.push(alert);
+      if (alert) alerts.push(alert);
     }
     
     // Check motion detection
@@ -85,7 +83,7 @@ async function checkThresholds(sensorData) {
         value: 1,
         threshold: 1
       });
-      alerts.push(alert);
+      if (alert) alerts.push(alert);
     }
     
     return alerts;
@@ -97,42 +95,52 @@ async function checkThresholds(sensorData) {
 }
 
 /**
- * Create and save alert
+ * Create alert and send notification (no database storage)
  */
 async function createAlert(alertData) {
   try {
-    // Check if similar alert exists in last 5 minutes (avoid spam)
-    const recentAlert = await Alert.findOne({
-      deviceId: alertData.deviceId,
-      type: alertData.type,
-      status: 'active',
-      createdAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) }
-    });
+    // Check if similar alert exists recently (avoid spam)
+    const alertKey = `${alertData.deviceId}_${alertData.type}`;
+    const lastAlertTime = recentAlerts.get(alertKey);
     
-    if (recentAlert) {
-      console.log(`⚠ Similar alert already exists, skipping: ${alertData.type}`);
-      return recentAlert;
+    if (lastAlertTime && (Date.now() - lastAlertTime) < ALERT_COOLDOWN) {
+      console.log(`⚠ Similar alert already sent recently, skipping: ${alertData.type}`);
+      return null;
     }
     
-    // Create new alert
-    const alert = new Alert(alertData);
-    await alert.save();
+    // Create alert object (not saved to database)
+    const alert = {
+      ...alertData,
+      createdAt: new Date(),
+      status: 'active'
+    };
     
-    console.log(`⚠ Alert created: ${alertData.type} - ${alertData.message}`);
+    console.log(`⚠ Alert triggered: ${alertData.type} - ${alertData.message}`);
     
     // Send Telegram notification
     const telegramSent = await sendTelegramAlert(alert);
     
     if (telegramSent) {
       alert.telegramSent = true;
-      await alert.save();
+      // Remember this alert to prevent spam
+      recentAlerts.set(alertKey, Date.now());
+      
+      // Clean up old entries periodically
+      if (recentAlerts.size > 100) {
+        const now = Date.now();
+        for (const [key, time] of recentAlerts.entries()) {
+          if (now - time > ALERT_COOLDOWN) {
+            recentAlerts.delete(key);
+          }
+        }
+      }
     }
     
     return alert;
     
   } catch (error) {
     console.error('Error creating alert:', error);
-    throw error;
+    return null;
   }
 }
 

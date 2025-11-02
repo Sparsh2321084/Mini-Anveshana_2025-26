@@ -17,8 +17,9 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const sensorRoutes = require('./src/routes/sensorRoutes');
-const alertRoutes = require('./src/routes/alertRoutes');
-const authRoutes = require('./src/routes/authRoutes');
+// Alert and Auth routes disabled (require database)
+// const alertRoutes = require('./src/routes/alertRoutes');
+// const authRoutes = require('./src/routes/authRoutes');
 // Database removed - using in-memory storage
 const { initTelegramBot } = require('./src/services/telegramService');
 const { startWebSocketServer } = require('./src/services/websocketService');
@@ -78,8 +79,9 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/sensor-data', esp32Limiter, sensorRoutes);
-app.use('/api/alerts', alertRoutes);
-app.use('/api/auth', authRoutes);
+// Alert and Auth routes disabled (require database)
+// app.use('/api/alerts', alertRoutes);
+// app.use('/api/auth', authRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -88,9 +90,7 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       health: '/health',
-      sensorData: '/api/sensor-data',
-      alerts: '/api/alerts',
-      auth: '/api/auth'
+      sensorData: '/api/sensor-data'
     },
     documentation: '/api/docs'
   });

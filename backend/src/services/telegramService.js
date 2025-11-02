@@ -62,8 +62,9 @@ async function initTelegramBot() {
     bot.onText(/\/status/, async (msg) => {
       const chatId = msg.chat.id;
       try {
-        const SensorData = require('../models/SensorData');
-        const latestData = await SensorData.findOne().sort({ timestamp: -1 });
+        // Get in-memory sensor data
+        const sensorController = require('../controllers/sensorController');
+        const latestData = sensorController.getLatestData();
         
         if (!latestData) {
           return bot.sendMessage(chatId, '❌ No sensor data available');
@@ -85,14 +86,13 @@ async function initTelegramBot() {
     bot.onText(/\/config/, async (msg) => {
       const chatId = msg.chat.id;
       try {
-        const AlertConfig = require('../models/AlertConfig');
-        const config = await AlertConfig.findOne({ deviceId: 'default' });
-        
-        const thresholds = config?.thresholds || {
-          temperatureHigh: 35,
-          temperatureLow: 10,
-          humidityHigh: 80,
-          humidityLow: 20
+        // Default thresholds from environment
+        const thresholds = {
+          temperatureHigh: parseFloat(process.env.TEMP_HIGH_THRESHOLD) || 35,
+          temperatureLow: parseFloat(process.env.TEMP_LOW_THRESHOLD) || 15,
+          humidityHigh: parseFloat(process.env.HUMIDITY_HIGH_THRESHOLD) || 70,
+          humidityLow: parseFloat(process.env.HUMIDITY_LOW_THRESHOLD) || 30,
+          motionDetection: true
         };
         
         const message = 
