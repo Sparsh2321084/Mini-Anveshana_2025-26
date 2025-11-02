@@ -64,18 +64,25 @@ app.use(express.urlencoded({ extended: true }));
 // Logging
 app.use(morgan('combined'));
 
-// Rate limiting
+// Rate limiting - More lenient for frontend
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // 100 requests per minute
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Skip rate limiting for frontend origins
+  skip: (req) => {
+    const origin = req.get('origin');
+    return origin && allowedOrigins.some(allowed => origin.startsWith(allowed));
+  }
 });
 app.use('/api/', limiter);
 
-// Specific rate limit for ESP32 data endpoint
+// Specific rate limit for ESP32 data POST endpoint only
 const esp32Limiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 60, // 60 requests per minute (one every second)
+  max: 120, // 120 requests per minute (2 per second)
   skipFailedRequests: true
 });
 
