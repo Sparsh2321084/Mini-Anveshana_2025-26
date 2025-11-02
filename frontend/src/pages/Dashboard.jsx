@@ -45,7 +45,7 @@ function Dashboard() {
   };
 
   const connectWebSocket = () => {
-    const wsUrl = import.meta.env.VITE_WS_URL || 'wss://grain-backend-kw0o.onrender.com';
+    const wsUrl = import.meta.env.VITE_WS_URL || 'wss://mini-anveshana-2025-26.onrender.com';
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {

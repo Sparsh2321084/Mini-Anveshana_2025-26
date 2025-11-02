@@ -178,7 +178,7 @@ const char* ssid = "Your-WiFi-SSID";---
 
 const char* password = "Your-WiFi-Password";
 
-const char* serverURL = "https://grain-backend-kw0o.onrender.com/api/sensor-data";## 🚀 Quick Start
+const char* serverURL = "https://mini-anveshana-2025-26.onrender.com/api/sensor-data";## 🚀 Quick Start
 
 const char* apiKey = "ESP32_SECURE_API_KEY_2025";
 
