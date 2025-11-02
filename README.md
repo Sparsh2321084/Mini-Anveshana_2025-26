@@ -1,13 +1,15 @@
-# 🌐 ESP32 IoT Dashboard - Mini Anveshana 2025-26# 🌐 ESP32 IoT Dashboard with Telegram Alerts
+# 🌐 Mini Anveshana 2025-26# 🌐 # SMART STORAGE GRAIN SYSTEM#
 
 
+A full-stack IoT monitoring system featuring real-time sensor data visualization, cloud storage, and intelligent Telegram notifications for grain storage monitoring.
 
-Real-time IoT monitoring system with ESP32, cloud backend, and web dashboard featuring Telegram alerts.A full-stack IoT monitoring system featuring real-time sensor data visualization, cloud storage, and intelligent Telegram notifications.
+---
 
+## 🚀 **[VIEW LIVE DASHBOARD →](https://sparsh2321084.github.io/Mini-Anveshana_2025-26/)**
 
+---
 
----![Project Status](https://img.shields.io/badge/Status-Active-success)
-
+![Project Status](https://img.shields.io/badge/Status-Live-success)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 ## 📋 Project Overview
