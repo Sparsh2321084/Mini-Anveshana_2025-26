@@ -449,4 +449,4 @@ MIT License - Free for educational and non-commercial use.⭐ **Star this repo i
 
 ---
 
-**Made with ❤️ by Sparsh Trivedi & Aman Singh for Mini Anveshana 2025-26**
+**Made by Sparsh Trivedi & Aman Singh for Mini Anveshana 2025-26**
