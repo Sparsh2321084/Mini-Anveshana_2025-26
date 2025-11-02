@@ -99,6 +99,11 @@ app.use('/api/sensor-data', esp32Limiter, sensorRoutes);
 // app.use('/api/alerts', alertRoutes);
 // app.use('/api/auth', authRoutes);
 
+// Dummy alerts endpoint (returns empty array since no database)
+app.get('/api/alerts', (req, res) => {
+  res.json({ alerts: [], count: 0 });
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
