@@ -5,6 +5,7 @@
  */
 
 const { sendTelegramAlert } = require('./telegramService');
+const { getThresholds } = require('../config/thresholds');
 
 // In-memory tracking to avoid spam (store recent alerts)
 const recentAlerts = new Map();
@@ -15,14 +16,8 @@ const ALERT_COOLDOWN = 5 * 60 * 1000; // 5 minutes
  */
 async function checkThresholds(sensorData) {
   try {
-    // Get thresholds from environment variables
-    const thresholds = {
-      temperatureHigh: parseFloat(process.env.TEMP_HIGH_THRESHOLD) || 35,
-      temperatureLow: parseFloat(process.env.TEMP_LOW_THRESHOLD) || 15,
-      humidityHigh: parseFloat(process.env.HUMIDITY_HIGH_THRESHOLD) || 70,
-      humidityLow: parseFloat(process.env.HUMIDITY_LOW_THRESHOLD) || 30,
-      motionDetection: process.env.MOTION_DETECTION !== 'false'
-    };
+    // Get dynamic thresholds
+    const thresholds = getThresholds();
     
     const alerts = [];
     
