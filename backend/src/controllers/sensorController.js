@@ -7,6 +7,7 @@
 
 const { checkThresholds } = require('../services/alertService');
 const { broadcastSensorData } = require('../services/websocketService');
+const { analyzeGrainQuality, formatQualityReport } = require('../services/qualityAnalysisService');
 
 // In-memory storage for latest sensor data
 let latestSensorData = {
@@ -15,7 +16,8 @@ let latestSensorData = {
   humidity: null,
   motion: false,
   timestamp: null,
-  history: [] // Keep last 50 readings for charts
+  history: [], // Keep last 50 readings for charts
+  quality: null // Grain quality analysis
 };
 
 const MAX_HISTORY = 50; // Keep last 50 data points for frontend charts
@@ -65,6 +67,15 @@ exports.receiveSensorData = async (req, res) => {
     console.log(`  Humidity: ${sensors.humidity}%`);
     console.log(`  Motion: ${sensors.motion ? '🚨 DETECTED' : 'None'} (raw: ${sensors.motion})`);
     
+    // Analyze grain quality based on humidity
+    const qualityAnalysis = analyzeGrainQuality(newData, latestSensorData.history);
+    latestSensorData.quality = formatQualityReport(qualityAnalysis);
+    
+    console.log(`  📊 Quality: ${qualityAnalysis.grade} (${qualityAnalysis.score}/100)`);
+    if (qualityAnalysis.issues.length > 0) {
+      console.log(`  ⚠️  Issues: ${qualityAnalysis.issues[0]}`);
+    }
+    
     // Check thresholds and send alerts if needed (optional)
     let alerts = [];
     try {
@@ -77,6 +88,7 @@ exports.receiveSensorData = async (req, res) => {
     broadcastSensorData({
       deviceId: device_id,
       data: sensors,
+      quality: latestSensorData.quality,
       alerts: alerts,
       timestamp: newData.timestamp
     });
@@ -84,7 +96,8 @@ exports.receiveSensorData = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Data received successfully',
-      alertsTriggered: alerts.length
+      alertsTriggered: alerts.length,
+      quality: latestSensorData.quality
     });
     
   } catch (error) {

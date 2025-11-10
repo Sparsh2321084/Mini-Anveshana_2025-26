@@ -109,6 +109,10 @@
   animation: fadeIn 0.5s ease-out;
 }
 
+.quality-section {
+  margin-bottom: 30px;
+}
+
 .sensor-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

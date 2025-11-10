@@ -47,6 +47,7 @@ async function initTelegramBot() {
         `🚶 Motion is detected\n\n` +
         `*Commands:*\n` +
         `/status` + ` \\- Get current sensor readings\n` +
+        `/quality` + ` \\- Check grain quality analysis\n` +
         `/config` + ` \\- View alert thresholds\n` +
         `/settemp <high> <low>` + ` \\- Set temperature thresholds\n` +
         `/sethumidity <high> <low>` + ` \\- Set humidity thresholds\n` +
@@ -96,6 +97,51 @@ async function initTelegramBot() {
       } catch (error) {
         console.error('Status command error:', error);
         bot.sendMessage(chatId, '❌ Error fetching sensor data');
+      }
+    });
+    
+    // Quality analysis command
+    bot.onText(/\/quality/, async (msg) => {
+      const chatId = msg.chat.id;
+      try {
+        const sensorController = require('../controllers/sensorController');
+        const latestData = sensorController.latestSensorData;
+        
+        if (!latestData || !latestData.quality) {
+          return bot.sendMessage(chatId, '❌ No quality data available yet. Waiting for sensor readings...');
+        }
+        
+        const q = latestData.quality;
+        const escapeMarkdown = (text) => {
+          return String(text).replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
+        };
+        
+        let message = `🌾 *GRAIN QUALITY ANALYSIS*\n\n`;
+        message += `${q.status}\n`;
+        message += `📊 *Score:* ${q.score}/100\n`;
+        message += `🏆 *Grade:* ${q.grade}\n`;
+        message += `💧 *Moisture:* ${q.humidity}\n`;
+        message += `📦 *Estimated Shelf Life:* ${escapeMarkdown(q.shelfLife)}\n\n`;
+        
+        if (q.hasIssues) {
+          message += `⚠️ *Issues Detected:*\n`;
+          q.details.issues.forEach((issue, i) => {
+            message += `${i + 1}\\. ${escapeMarkdown(issue)}\n`;
+          });
+          message += `\n`;
+        }
+        
+        if (q.details.recommendations.length > 0) {
+          message += `💡 *Recommendations:*\n`;
+          q.details.recommendations.slice(0, 3).forEach((rec, i) => {
+            message += `${i + 1}\\. ${escapeMarkdown(rec)}\n`;
+          });
+        }
+        
+        bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+      } catch (error) {
+        console.error('Quality command error:', error);
+        bot.sendMessage(chatId, '❌ Error fetching quality analysis');
       }
     });
     

@@ -4,6 +4,7 @@ import SensorCard from '../components/SensorCard';
 import ChartCard from '../components/ChartCard';
 import AlertsList from '../components/AlertsList';
 import GrainContainer3D from '../components/GrainContainer3D';
+import QualityCard from '../components/QualityCard';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { getSensorData, getLatestData, getAlerts } from '../services/api';
 import './Dashboard.css';
@@ -12,6 +13,7 @@ function Dashboard() {
   const [latestData, setLatestData] = useState(null);
   const [historicalData, setHistoricalData] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [quality, setQuality] = useState(null);
   const [loading, setLoading] = useState(true);
   const [wsConnected, setWsConnected] = useState(false);
 
@@ -59,6 +61,9 @@ function Dashboard() {
       
       if (message.type === 'sensor_update') {
         setLatestData(message.data);
+        if (message.quality) {
+          setQuality(message.quality);
+        }
         // Add to historical data
         setHistoricalData(prev => [message.data, ...prev].slice(0, 50));
       } else if (message.type === 'alert') {
@@ -121,6 +126,11 @@ function Dashboard() {
       </header>
 
       <div className="container dashboard-content">
+        {/* Quality Analysis Card */}
+        <section className="quality-section">
+          <QualityCard quality={quality} />
+        </section>
+
         {/* Sensor Cards */}
         <section className="sensor-grid">
           <SensorCard
