@@ -63,7 +63,7 @@ exports.receiveSensorData = async (req, res) => {
     console.log(`✓ Sensor data received from ${device_id}`);
     console.log(`  Temperature: ${sensors.temperature}°C`);
     console.log(`  Humidity: ${sensors.humidity}%`);
-    console.log(`  Motion: ${sensors.motion ? 'Detected' : 'None'}`);
+    console.log(`  Motion: ${sensors.motion ? '🚨 DETECTED' : 'None'} (raw: ${sensors.motion})`);
     
     // Check thresholds and send alerts if needed (optional)
     let alerts = [];

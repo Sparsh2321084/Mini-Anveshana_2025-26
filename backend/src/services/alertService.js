@@ -71,6 +71,7 @@ async function checkThresholds(sensorData) {
     
     // Check motion detection
     if (sensorData.motion && thresholds.motionDetection) {
+      console.log('🚨 Motion detected! Creating alert...');
       const alert = await createAlert({
         deviceId: sensorData.deviceId,
         type: 'motion_detected',
@@ -78,7 +79,12 @@ async function checkThresholds(sensorData) {
         value: 1,
         threshold: 1
       });
-      if (alert) alerts.push(alert);
+      if (alert) {
+        console.log('✓ Motion alert created and sent to Telegram');
+        alerts.push(alert);
+      }
+    } else if (sensorData.motion) {
+      console.log('⚠️ Motion detected but motion alerts are disabled in config');
     }
     
     return alerts;

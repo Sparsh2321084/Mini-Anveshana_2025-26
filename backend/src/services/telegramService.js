@@ -78,12 +78,19 @@ async function initTelegramBot() {
           return String(text).replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
         };
         
+        // Format time in IST (India Standard Time)
+        const istTime = new Date(latestData.timestamp).toLocaleString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          dateStyle: 'medium',
+          timeStyle: 'medium'
+        });
+        
         const message = 
           `📊 *Current Sensor Status*\n\n` +
           `🌡️ *Temperature:* ${escapeMarkdown(latestData.temperature)}°C\n` +
           `💧 *Humidity:* ${escapeMarkdown(latestData.humidity)}%\n` +
           `🚶 *Motion:* ${latestData.motion ? 'Detected' : 'None'}\n` +
-          `⏰ *Last update:* ${escapeMarkdown(new Date(latestData.timestamp).toLocaleString())}`;
+          `⏰ *Last update:* ${escapeMarkdown(istTime)}`;
         
         bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
       } catch (error) {
@@ -248,6 +255,13 @@ async function sendTelegramAlert(alert) {
       return String(text).replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
     };
     
+    // Format time in IST (India Standard Time)
+    const istTime = new Date(alert.createdAt).toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      dateStyle: 'medium',
+      timeStyle: 'medium'
+    });
+    
     const message = 
       `⚠️ *${emoji} ALERT*\n\n` +
       `*Type:* ${alert.type.replace(/_/g, ' ').toUpperCase()}\n` +
@@ -255,7 +269,7 @@ async function sendTelegramAlert(alert) {
       `*Value:* ${escapeMarkdown(alert.value)}\n` +
       `*Threshold:* ${escapeMarkdown(alert.threshold)}\n` +
       `*Device:* ${escapeMarkdown(alert.deviceId)}\n` +
-      `*Time:* ${escapeMarkdown(new Date(alert.createdAt).toLocaleString())}`;
+      `*Time:* ${escapeMarkdown(istTime)}`;
     
     for (const chatId of chatIds) {
       await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
