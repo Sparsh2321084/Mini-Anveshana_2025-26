@@ -255,3 +255,6 @@ exports.cleanupOldData = async (req, res) => {
     });
   }
 };
+
+// Export the in-memory data for Telegram service
+exports.latestSensorData = latestSensorData;

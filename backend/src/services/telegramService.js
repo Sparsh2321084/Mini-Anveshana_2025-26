@@ -62,23 +62,28 @@ async function initTelegramBot() {
     bot.onText(/\/status/, async (msg) => {
       const chatId = msg.chat.id;
       try {
-        // Get in-memory sensor data
+        // Get in-memory sensor data directly
         const sensorController = require('../controllers/sensorController');
-        const latestData = sensorController.getLatestData();
+        const latestData = sensorController.latestSensorData;
         
-        if (!latestData) {
-          return bot.sendMessage(chatId, '❌ No sensor data available');
+        if (!latestData || !latestData.timestamp) {
+          return bot.sendMessage(chatId, '❌ No sensor data available yet. Waiting for ESP32...');
         }
+        
+        const escapeMarkdown = (text) => {
+          return String(text).replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
+        };
         
         const message = 
           `📊 *Current Sensor Status*\n\n` +
-          `🌡️ Temperature: ${latestData.temperature}°C\n` +
-          `💧 Humidity: ${latestData.humidity}%\n` +
-          `🚶 Motion: ${latestData.motion ? 'Detected' : 'None'}\n` +
-          `⏰ Last update: ${new Date(latestData.timestamp).toLocaleString()}`;
+          `🌡️ *Temperature:* ${escapeMarkdown(latestData.temperature)}°C\n` +
+          `💧 *Humidity:* ${escapeMarkdown(latestData.humidity)}%\n` +
+          `🚶 *Motion:* ${latestData.motion ? 'Detected' : 'None'}\n` +
+          `⏰ *Last update:* ${escapeMarkdown(new Date(latestData.timestamp).toLocaleString())}`;
         
         bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
       } catch (error) {
+        console.error('Status command error:', error);
         bot.sendMessage(chatId, '❌ Error fetching sensor data');
       }
     });
