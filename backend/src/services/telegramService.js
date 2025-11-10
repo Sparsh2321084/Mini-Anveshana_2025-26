@@ -128,14 +128,20 @@ async function sendTelegramAlert(alert) {
   
   try {
     const emoji = getAlertEmoji(alert.type);
+    
+    // Escape special characters for Markdown
+    const escapeMarkdown = (text) => {
+      return String(text).replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
+    };
+    
     const message = 
       `⚠️ *${emoji} ALERT*\n\n` +
-      `Type: ${alert.type.replace(/_/g, ' ').toUpperCase()}\n` +
-      `Message: ${alert.message}\n` +
-      `Value: ${alert.value}\n` +
-      `Threshold: ${alert.threshold}\n` +
-      `Device: ${alert.deviceId}\n` +
-      `Time: ${new Date(alert.createdAt).toLocaleString()}`;
+      `*Type:* ${alert.type.replace(/_/g, ' ').toUpperCase()}\n` +
+      `*Message:* ${escapeMarkdown(alert.message)}\n` +
+      `*Value:* ${escapeMarkdown(alert.value)}\n` +
+      `*Threshold:* ${escapeMarkdown(alert.threshold)}\n` +
+      `*Device:* ${escapeMarkdown(alert.deviceId)}\n` +
+      `*Time:* ${escapeMarkdown(new Date(alert.createdAt).toLocaleString())}`;
     
     for (const chatId of chatIds) {
       await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
