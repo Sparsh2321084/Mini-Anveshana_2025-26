@@ -16,6 +16,15 @@ function Dashboard() {
   const [quality, setQuality] = useState(null);
   const [loading, setLoading] = useState(true);
   const [wsConnected, setWsConnected] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update current time every second to refresh "time ago" display
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Fetch initial data
   useEffect(() => {
@@ -93,6 +102,30 @@ function Dashboard() {
   }
 
   const activeAlerts = alerts.filter(a => a.status === 'active');
+  
+  // Check if data is stale (no updates for 30 seconds)
+  const isDataStale = () => {
+    if (!latestData?.timestamp) return true;
+    const lastUpdate = new Date(latestData.timestamp);
+    const now = new Date();
+    const timeDiff = (now - lastUpdate) / 1000; // seconds
+    return timeDiff > 30; // Consider stale after 30 seconds
+  };
+  
+  const getTimeSinceUpdate = () => {
+    if (!latestData?.timestamp) return 'Never';
+    const lastUpdate = new Date(latestData.timestamp);
+    const now = new Date();
+    const diffSeconds = Math.floor((now - lastUpdate) / 1000);
+    
+    if (diffSeconds < 60) return `${diffSeconds}s ago`;
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    return `${diffHours}h ago`;
+  };
+  
+  const dataStale = isDataStale();
 
   return (
     <div className="dashboard grain-theme">
@@ -110,9 +143,12 @@ function Dashboard() {
               </p>
             </div>
             <div className="header-status">
-              <div className={`status-badge ${wsConnected ? 'connected' : 'disconnected'}`}>
+              <div className={`status-badge ${wsConnected && !dataStale ? 'connected' : 'disconnected'}`}>
                 <span className="status-dot"></span>
-                {wsConnected ? 'Live Monitoring' : 'Offline'}
+                {wsConnected && !dataStale ? 'Live Monitoring' : dataStale ? 'Data Stale' : 'Offline'}
+              </div>
+              <div className="last-update">
+                Last update: {getTimeSinceUpdate()}
               </div>
               {activeAlerts.length > 0 && (
                 <div className="alert-badge">
@@ -126,6 +162,17 @@ function Dashboard() {
       </header>
 
       <div className="container dashboard-content">
+        {/* Data Stale Warning */}
+        {dataStale && (
+          <div className="stale-data-warning">
+            <AlertCircle size={20} />
+            <div>
+              <strong>ESP32 Disconnected</strong>
+              <p>No data received for {getTimeSinceUpdate()}. Check your ESP32 connection.</p>
+            </div>
+          </div>
+        )}
+
         {/* Quality Analysis Card */}
         <section className="quality-section">
           <QualityCard quality={quality} />
