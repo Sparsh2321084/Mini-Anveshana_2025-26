@@ -3,7 +3,8 @@ import { Activity, Droplets, Thermometer, AlertCircle, TrendingUp, Eye, Warehous
 import SensorCard from '../components/SensorCard';
 import ChartCard from '../components/ChartCard';
 import AlertsList from '../components/AlertsList';
-// import SensorVisualization3D from '../components/SensorVisualization3D';
+import GrainContainer3D from '../components/GrainContainer3D';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { getSensorData, getLatestData, getAlerts } from '../services/api';
 import './Dashboard.css';
 
@@ -39,7 +40,7 @@ function Dashboard() {
       setAlerts(alertsData.alerts);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      if (import.meta.env.DEV) console.error('Error fetching data:', error);
       setLoading(false);
     }
   };
@@ -49,7 +50,7 @@ function Dashboard() {
     const ws = new WebSocket(`${wsUrl}/ws`);
 
     ws.onopen = () => {
-      console.log('✓ WebSocket connected');
+      if (import.meta.env.DEV) console.log('✓ WebSocket connected');
       setWsConnected(true);
     };
 
@@ -66,14 +67,14 @@ function Dashboard() {
     };
 
     ws.onclose = () => {
-      console.log('✗ WebSocket disconnected');
+      if (import.meta.env.DEV) console.log('✗ WebSocket disconnected');
       setWsConnected(false);
       // Reconnect after 5 seconds
       setTimeout(connectWebSocket, 5000);
     };
 
     ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      if (import.meta.env.DEV) console.error('WebSocket error:', error);
     };
   };
 
@@ -186,6 +187,19 @@ function Dashboard() {
             color="#3b82f6"
             unit="%"
           />
+        </section>
+
+        {/* 3D Grain Container Visualization */}
+        <section className="visualization-section">
+          <div className="card">
+            <h2 className="section-title">
+              <Warehouse size={20} />
+              3D Grain Storage Container
+            </h2>
+            <ErrorBoundary>
+              <GrainContainer3D data={latestData?.data || latestData} />
+            </ErrorBoundary>
+          </div>
         </section>
 
         {/* Alerts */}
