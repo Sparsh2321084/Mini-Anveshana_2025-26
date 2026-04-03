@@ -308,7 +308,7 @@ async function sendTelegramAlert(alert) {
       timeStyle: 'medium'
     });
     
-    const message = 
+    let message = 
       `⚠️ *${emoji} ALERT*\n\n` +
       `*Type:* ${alert.type.replace(/_/g, ' ').toUpperCase()}\n` +
       `*Message:* ${escapeMarkdown(alert.message)}\n` +
@@ -316,6 +316,12 @@ async function sendTelegramAlert(alert) {
       `*Threshold:* ${escapeMarkdown(alert.threshold)}\n` +
       `*Device:* ${escapeMarkdown(alert.deviceId)}\n` +
       `*Time:* ${escapeMarkdown(istTime)}`;
+    
+    // Append localized alert details
+    const localizedDetails = getLocalizedAlertDetails(alert.type, alert.value, alert.threshold);
+    if (localizedDetails) {
+      message += `\n\n${localizedDetails}`;
+    }
     
     for (const chatId of chatIds) {
       await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
@@ -342,6 +348,52 @@ function getAlertEmoji(type) {
     'motion_detected': '🚶'
   };
   return emojiMap[type] || '⚠️';
+}
+
+/**
+ * Get localized Hindi/Hinglish alert details and recommended actions
+ */
+function getLocalizedAlertDetails(type, value, threshold) {
+  const details = {
+    'temperature_high': {
+      safeLevel: `🌾 धान \/ चावल (Rice)\n📊 सुरक्षित स्तर\n🌡 तापमान: 20°C – 30°C`,
+      trigger: `🔴 तापमान > ${threshold}°C`,
+      danger: `⚠️ खतरा: चावल की गुणवत्ता खराब हो रही है`,
+      solutions: `✅ उपाय:\n• साइलो को ठंडा रखें (शेड\\/कवर)\n• रात में हवा पास करें (ventilation)\n• अगर संभव हो तो साइलो की बाहरी दीवार पर पानी का छिड़काव करें (cooling)`
+    },
+    'temperature_low': {
+      safeLevel: `🌾 धान \/ चावल (Rice)\n📊 सुरक्षित स्तर\n🌡 तापमान: 20°C – 30°C`,
+      trigger: `🔴 तापमान < ${threshold}°C`,
+      danger: `⚠️ खतरा: संघनन (condensation) और नमी जमा हो सकती है`,
+      solutions: `✅ उपाय:\n• साइलो को धूप में रखें\n• दिन में वेंटिलेशन दें\n• आर्द्रता की निगरानी करें`
+    },
+    'humidity_high': {
+      safeLevel: `🌾 धान \/ चावल (Rice)\n📊 सुरक्षित स्तर\n🌫 आर्द्रता: < 65%`,
+      trigger: `🔴 आर्द्रता > ${threshold}%`,
+      danger: `⚠️ खतरा: गंध और फंगस (mold) विकसित हो सकते हैं`,
+      solutions: `✅ उपाय:\n• साइलो के वेंट खोलें\n• गीले हिस्से को अलग करें\n• हवा पास करें (fan\\/ventilation)\n• आर्द्रता को कम करने के लिए dehumidifier का उपयोग करें`
+    },
+    'humidity_low': {
+      safeLevel: `🌾 धान \/ चावल (Rice)\n📊 सुरक्षित स्तर\n🌫 आर्द्रता: > 50%`,
+      trigger: `🔴 आर्द्रता < ${threshold}%`,
+      danger: `⚠️ खतरा: चावल सूख सकता है और टूट सकता है`,
+      solutions: `✅ उपाय:\n• आर्द्रता बढ़ाएं (humidifier का उपयोग करें)\n• साइलो को सील करे हुए कंटेनर में रखें\n• नमी वाली हवा दें`
+    }
+  };
+
+  if (details[type]) {
+    return (
+      `─────────────────\n` +
+      `${details[type].safeLevel}\n\n` +
+      `⚠️ ट्रिगर + समाधान\n` +
+      `${details[type].trigger}\n` +
+      `${details[type].danger}\n` +
+      `${details[type].solutions}\n` +
+      `─────────────────`
+    );
+  }
+
+  return null;
 }
 
 /**
