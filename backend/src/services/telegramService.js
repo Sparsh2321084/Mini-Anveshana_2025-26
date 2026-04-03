@@ -8,7 +8,7 @@ const fs = require('fs');
 
 let bot;
 let chatIds = [];
-let lastAlertTime = 0;
+let lastAlertTime = 120000;
 
 /**
  * INIT BOT
