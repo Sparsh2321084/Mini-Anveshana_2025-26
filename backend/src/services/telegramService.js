@@ -1,188 +1,169 @@
 /**
- * Telegram Hindi Alert Service (Simple + Voice)
+ * Telegram Hindi Alert Service (Female Voice Style)
  */
 
 const TelegramBot = require('node-telegram-bot-api');
 const gTTS = require('gtts');
+const fs = require('fs');
 
 let bot;
 let chatIds = [];
-let lastAlertTime = 0; // ⏱️ 2 min gap
+let lastAlertTime = 0;
 
 /**
  * INIT BOT
  */
 async function initTelegramBot() {
-  try {
-    const token = process.env.TELEGRAM_BOT_TOKEN;
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) return;
 
-    if (!token) {
-      console.log('⚠ Bot token नहीं मिला');
-      return;
+  bot = new TelegramBot(token, { polling: true });
+
+  bot.onText(/\/start/, (msg) => {
+    const chatId = msg.chat.id;
+    if (!chatIds.includes(chatId.toString())) {
+      chatIds.push(chatId.toString());
     }
 
-    bot = new TelegramBot(token, { polling: true });
+    bot.sendMessage(chatId,
+      `नमस्ते 🙏\n\n` +
+      `मैं आपकी साइलो सहायक हूँ...\n` +
+      `अगर कोई समस्या होगी,\nमैं तुरंत आपको बताऊंगी।`
+    );
+  });
 
-    // chat IDs from env
-    const chatIdStr = process.env.TELEGRAM_CHAT_ID || process.env.TELEGRAM_CHAT_IDS;
-    if (chatIdStr) {
-      chatIds = chatIdStr.split(',').map(id => id.trim());
-    }
-
-    // ▶ START
-    bot.onText(/\/start/, (msg) => {
-      const chatId = msg.chat.id;
-
-      if (!chatIds.includes(chatId.toString())) {
-        chatIds.push(chatId.toString());
-      }
-
-      bot.sendMessage(chatId,
-        `🤖 नमस्ते!\n\n` +
-        `अब आपको साइलो की सभी महत्वपूर्ण जानकारी मिलेगी\n\n` +
-        `अगर कोई समस्या होगी तो तुरंत सूचना दी जाएगी`
-      );
-    });
-
-    // ⛔ STOP
-    bot.onText(/\/stop/, (msg) => {
-      const chatId = msg.chat.id;
-      chatIds = chatIds.filter(id => id !== chatId.toString());
-      bot.sendMessage(chatId, 'आपको अलर्ट मिलना बंद हो गया है');
-    });
-
-    console.log('✓ Telegram Hindi Bot चालू है');
-
-  } catch (err) {
-    console.error('❌ Bot start error:', err.message);
-  }
+  bot.onText(/\/stop/, (msg) => {
+    const chatId = msg.chat.id;
+    chatIds = chatIds.filter(id => id !== chatId.toString());
+    bot.sendMessage(chatId, 'ठीक है... अब आपको संदेश नहीं मिलेंगे।');
+  });
 }
 
 /**
- * SEND ALERT (TEXT + VOICE + 2 MIN GAP)
+ * SEND ALERT
  */
 async function sendTelegramAlert(alert) {
-  if (!bot || chatIds.length === 0) return false;
+  if (!bot || chatIds.length === 0) return;
 
-  // ⏱️ 2 मिनट गैप
   const now = Date.now();
-  if (now - lastAlertTime < 120000) {
-    console.log('⏳ Alert रुका (2 मिनट गैप)');
-    return false;
-  }
+  if (now - lastAlertTime < 120000) return;
   lastAlertTime = now;
 
   try {
-    const text = getSimpleHindiMessage(alert.type);
+    const text = getFemaleHindiMessage(alert.type);
 
     for (const chatId of chatIds) {
 
-      // 📩 TEXT
+      // TEXT
       await bot.sendMessage(chatId, text);
 
-      // 🔊 VOICE
+      // VOICE
       const tts = new gTTS(text, 'hi');
       const file = `voice_${Date.now()}.mp3`;
 
-      await new Promise((resolve) => {
-        tts.save(file, resolve);
-      });
+      await new Promise(res => tts.save(file, res));
 
       await bot.sendVoice(chatId, file);
+
+      fs.unlinkSync(file); // cleanup
     }
 
-    console.log('✓ Hindi alert भेजा गया');
-    return true;
-
   } catch (err) {
-    console.error('❌ Error:', err.message);
-    return false;
+    console.error(err);
   }
 }
 
 /**
- * SIMPLE HINDI MESSAGES (NO TECH WORDS)
+ * FEMALE STYLE HINDI MESSAGES
  */
-function getSimpleHindiMessage(type) {
+function getFemaleHindiMessage(type) {
 
-  // 🌡️ गरम
+  // 🔥 गरम
   if (type === 'temperature_high') {
-    return `⚠️ अनाज गरम हो रहा है
+    return `सुनिए... ⚠️
 
-खतरा: अनाज खराब हो सकता है
+मुझे लग रहा है कि अनाज ज्यादा गरम हो रहा है...
 
-उपाय:
+अगर ध्यान नहीं दिया,
+तो अनाज खराब हो सकता है।
+
+कृपया अभी ध्यान दें...
 • साइलो को ढक कर रखें
 • हवा आने दें
-• पानी छिड़कें`;
+• थोड़ा पानी छिड़क दें`;
   }
 
   // ❄️ ठंडा
   if (type === 'temperature_low') {
-    return `⚠️ साइलो बहुत ठंडा है
+    return `सुनिए... ⚠️
 
-खतरा: नमी जमा हो सकती है
+साइलो थोड़ा ज्यादा ठंडा हो गया है...
 
-उपाय:
+इससे अंदर नमी जमा हो सकती है।
+
+आप ये करें...
 • साइलो को धूप में रखें
 • दिन में हवा लगने दें`;
   }
 
   // 💧 नमी ज्यादा
   if (type === 'humidity_high') {
-    return `⚠️ साइलो में नमी ज्यादा है
+    return `सुनिए... ⚠️
 
-खतरा: फंगस और बदबू बन सकती है
+साइलो में नमी बढ़ रही है...
 
-उपाय:
+इससे फंगस और बदबू आ सकती है।
+
+कृपया ध्यान दें...
 • गीला अनाज अलग करें
 • हवा चलाएं
-• ढक्कन खोलें`;
+• ढक्कन थोड़ा खोल दें`;
   }
 
   // 🌵 नमी कम
   if (type === 'humidity_low') {
-    return `⚠️ अनाज बहुत सूख रहा है
+    return `सुनिए... ⚠️
 
-खतरा: अनाज टूट सकता है
+अनाज थोड़ा ज्यादा सूख रहा है...
 
-उपाय:
-• नमी बढ़ाएं
-• साइलो बंद रखें`;
+इससे दाने टूट सकते हैं।
+
+आप ये करें...
+• थोड़ी नमी बढ़ाएं
+• साइलो को बंद रखें`;
   }
 
   // 🚨 मूवमेंट
   if (type === 'motion_detected') {
     const hour = new Date().getHours();
 
-    // 🌙 रात → चोरी शक
+    // 🌙 रात → चोरी
     if (hour >= 22 || hour <= 5) {
-      return `🚨 खतरा: साइलो के पास हलचल
+      return `सुनिए... 🚨
 
-शक: चोरी या छेड़छाड़
+मुझे साइलो के पास कुछ हलचल महसूस हुई है...
 
-उपाय:
-• तुरंत जाकर देखें
-• आसपास जांच करें`;
+शायद कोई छेड़छाड़ या चोरी हो सकती है।
+
+कृपया अभी जाकर जांच करें...`;
     }
 
-    // ☀️ दिन → चूहा/कीट
-    return `⚠️ साइलो में चूहा या कीट हो सकते हैं
+    // ☀️ दिन → चूहा
+    return `सुनिए... ⚠️
 
-खतरा: अनाज खराब हो सकता है
+लगता है साइलो में चूहा या कीट हो सकते हैं...
 
-उपाय:
+इससे अनाज खराब हो सकता है।
+
+आप ये करें...
 • चूहा ट्रैप लगाएं
 • छेद बंद करें
-• अनाज जांचें`;
+• अनाज जांच लें`;
   }
 
-  return `⚠️ साइलो में समस्या पाई गई\nजाकर जांच करें`;
+  return `सुनिए... साइलो में कुछ समस्या है... कृपया जांच करें।`;
 }
 
-/**
- * EXPORTS
- */
 module.exports = {
   initTelegramBot,
   sendTelegramAlert
