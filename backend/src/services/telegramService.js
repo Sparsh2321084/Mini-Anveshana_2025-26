@@ -8,7 +8,7 @@ const fs = require('fs');
 
 let bot;
 let chatIds = [];
-let lastAlertTime = 120000;
+let lastAlertTime = 0;
 
 /**
  * INIT BOT
@@ -168,3 +168,4 @@ module.exports = {
   initTelegramBot,
   sendTelegramAlert
 };
+
