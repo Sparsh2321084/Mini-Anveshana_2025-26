@@ -187,7 +187,7 @@ function formatQualityReport(analysis) {
   };
 }
 
-exports = {
+module.exports = {
   analyzeGrainQuality,
   shouldSendQualityAlert,
   formatQualityReport

@@ -49,6 +49,7 @@ function Dashboard() {
       setLatestData(latest.data);
       setHistoricalData(history.data);
       setAlerts(alertsData.alerts);
+      setQuality(latest.quality || latest.data?.quality || null);
       setLoading(false);
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error fetching data:', error);
