@@ -78,15 +78,15 @@ function buildFallbackInsight(sensorData, quality, history = []) {
   const drivers = buildDrivers(sensorData, quality, history);
   const actions = buildActions(sensorData, quality);
 
-  let headline = 'Storage conditions are stable';
-  let summary = 'Current readings support safe grain storage with no urgent intervention needed.';
+  let headline = 'Storage conditions look steady';
+  let summary = 'Current readings remain within a safe operating range, so the grain can stay under routine monitoring without immediate intervention.';
 
   if (riskLevel === 'high') {
-    headline = 'Storage quality needs immediate attention';
-    summary = 'Moisture and temperature conditions are creating a real spoilage risk. Prioritize corrective action before the next batch of readings.';
+    headline = 'Storage conditions need immediate correction';
+    summary = 'The latest readings point to a meaningful spoilage risk, with moisture or heat now high enough to threaten grain quality if operators do not respond quickly.';
   } else if (riskLevel === 'medium') {
-    headline = 'Storage quality is drifting from ideal conditions';
-    summary = 'The grain is still manageable, but recent conditions show early warning signs that should be corrected before they become a critical issue.';
+    headline = 'Storage conditions are starting to drift';
+    summary = 'The grain is still in a manageable state, but the trend is moving away from the ideal storage window and should be corrected before the risk deepens.';
   }
 
   return {
@@ -132,9 +132,12 @@ function buildPrompt(sensorData, quality, history) {
     'You are an agricultural grain-storage analyst.',
     'Return ONLY valid JSON with keys: headline, summary, riskLevel, topDrivers, actions.',
     'riskLevel must be one of: low, medium, high.',
-    'headline and summary must be concise and operational.',
+    'Write like an experienced operations analyst speaking to warehouse staff.',
+    'headline should sound natural, specific, and executive-ready, not robotic or generic.',
+    'summary should be 1 to 2 sentences, clear and practical, explaining what changed and why it matters.',
     'topDrivers must contain 2 to 3 short bullet-style strings.',
     'actions must contain 2 to 4 practical operator actions.',
+    'Avoid hype, filler, repeated sensor values, and phrases like "the data indicates" or "real-time monitoring suggests".',
     'Do not include markdown, explanations, or extra keys.',
     JSON.stringify(payload)
   ].join('\n');
