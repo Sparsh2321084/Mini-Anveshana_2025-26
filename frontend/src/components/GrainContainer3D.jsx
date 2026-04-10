@@ -1,4 +1,4 @@
-import { memo, useRef, useMemo, Suspense } from 'react';
+import { useRef, useMemo, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Text, Environment } from '@react-three/drei';
 import * as THREE from 'three';
@@ -825,7 +825,7 @@ function GrainContainer3D({ data }) {
           alpha: true,
           powerPreference: "high-performance"
         }}
-        dpr={[1, 1.5]}
+        dpr={[1, 2]}
         performance={{ min: 0.5 }}
       >
         <Suspense fallback={null}>
@@ -839,7 +839,7 @@ function GrainContainer3D({ data }) {
             penumbra={1}
             intensity={1.5}
             castShadow
-            shadow-mapSize={[1024, 1024]}
+            shadow-mapSize={[2048, 2048]}
             shadow-bias={-0.0001}
           />
           
@@ -930,4 +930,4 @@ function GrainContainer3D({ data }) {
   );
 }
 
-export default memo(GrainContainer3D);
+export default GrainContainer3D;

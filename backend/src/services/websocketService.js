@@ -76,7 +76,6 @@ function broadcastSensorData(data) {
       timestamp: data.timestamp
     },
     quality: data.quality,
-    insight: data.insight,
     alerts: data.alerts,
     timestamp: new Date()
   });
