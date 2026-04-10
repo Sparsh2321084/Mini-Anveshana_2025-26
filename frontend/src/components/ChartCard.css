@@ -1,20 +1,115 @@
 .chart-card {
   padding: 24px;
+  border-radius: 24px;
+  border: 1px solid rgba(180, 83, 9, 0.14);
+  background:
+    radial-gradient(circle at top right, rgba(251, 191, 36, 0.2), transparent 30%),
+    linear-gradient(160deg, rgba(255, 251, 235, 0.98), rgba(255, 245, 225, 0.96));
+  box-shadow: 0 20px 40px rgba(69, 33, 3, 0.12);
+}
+
+.chart-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.chart-eyebrow {
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #b45309;
 }
 
 .chart-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--dark);
-  margin-bottom: 20px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #422006;
+  margin: 0;
+}
+
+.chart-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.chart-delta.up {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.chart-delta.down {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
+.chart-delta.flat {
+  background: rgba(146, 64, 14, 0.1);
+  color: #92400e;
+}
+
+.chart-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.chart-metric {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(180, 83, 9, 0.1);
+}
+
+.chart-metric span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #a16207;
+}
+
+.chart-metric strong {
+  color: #422006;
+  font-size: 1.15rem;
 }
 
 .chart-container {
   height: 300px;
   position: relative;
+  padding: 14px 10px 8px;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 250, 240, 0.3)),
+    repeating-linear-gradient(
+      135deg,
+      rgba(180, 83, 9, 0.025),
+      rgba(180, 83, 9, 0.025) 10px,
+      transparent 10px,
+      transparent 20px
+    );
 }
 
 @media (max-width: 768px) {
+  .chart-head {
+    flex-direction: column;
+  }
+
+  .chart-metrics {
+    grid-template-columns: 1fr;
+  }
+
   .chart-container {
     height: 250px;
   }

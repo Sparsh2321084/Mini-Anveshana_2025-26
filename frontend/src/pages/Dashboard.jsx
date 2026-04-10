@@ -1,97 +1,36 @@
-import { useState, useEffect } from 'react';
-import { Activity, Droplets, Thermometer, AlertCircle, TrendingUp, Eye, Warehouse, Database } from 'lucide-react';
+import { lazy, Suspense, useMemo, useState } from 'react';
+import { AlertCircle, Database, Droplets, Eye, LineChart, Radar, Thermometer, Warehouse } from 'lucide-react';
 import SensorCard from '../components/SensorCard';
 import ChartCard from '../components/ChartCard';
 import AlertsList from '../components/AlertsList';
-import GrainContainer3D from '../components/GrainContainer3D';
 import QualityCard from '../components/QualityCard';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { getSensorData, getLatestData, getAlerts } from '../services/api';
+import LastUpdatedLabel from '../features/dashboard/LastUpdatedLabel';
+import { useDashboardData } from '../features/dashboard/useDashboardData';
+import QualityInsights from '../features/quality/QualityInsights';
 import './Dashboard.css';
 
+const GrainContainer3D = lazy(() => import('../components/GrainContainer3D'));
+
 function Dashboard() {
-  const [latestData, setLatestData] = useState(null);
-  const [historicalData, setHistoricalData] = useState([]);
-  const [alerts, setAlerts] = useState([]);
-  const [quality, setQuality] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [wsConnected, setWsConnected] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const {
+    latestData,
+    historicalData,
+    alerts,
+    quality,
+    insight,
+    loading,
+    wsConnected
+  } = useDashboardData();
+  const [showVisualization, setShowVisualization] = useState(false);
 
-  // Update current time every second to refresh "time ago" display
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const activeAlerts = useMemo(
+    () => alerts.filter((alert) => alert.status === 'active'),
+    [alerts]
+  );
 
-  // Fetch initial data
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 10000); // Update every 10 seconds
-    return () => clearInterval(interval);
-  }, []);
-
-  // WebSocket connection for real-time updates
-  useEffect(() => {
-    connectWebSocket();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const [latest, history, alertsData] = await Promise.all([
-        getLatestData(),
-        getSensorData({ limit: 50 }),
-        getAlerts({ limit: 10 })
-      ]);
-
-      setLatestData(latest.data);
-      setHistoricalData(history.data);
-      setAlerts(alertsData.alerts);
-      setQuality(latest.quality || latest.data?.quality || null);
-      setLoading(false);
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Error fetching data:', error);
-      setLoading(false);
-    }
-  };
-
-  const connectWebSocket = () => {
-    const wsUrl = import.meta.env.VITE_WS_URL || 'wss://mini-anveshana-2025-26.onrender.com';
-    const ws = new WebSocket(`${wsUrl}/ws`);
-
-    ws.onopen = () => {
-      if (import.meta.env.DEV) console.log('✓ WebSocket connected');
-      setWsConnected(true);
-    };
-
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      
-      if (message.type === 'sensor_update') {
-        setLatestData(message.data);
-        if (message.quality) {
-          setQuality(message.quality);
-        }
-        // Add to historical data
-        setHistoricalData(prev => [message.data, ...prev].slice(0, 50));
-      } else if (message.type === 'alert') {
-        setAlerts(prev => [message.alert, ...prev]);
-      }
-    };
-
-    ws.onclose = () => {
-      if (import.meta.env.DEV) console.log('✗ WebSocket disconnected');
-      setWsConnected(false);
-      // Reconnect after 5 seconds
-      setTimeout(connectWebSocket, 5000);
-    };
-
-    ws.onerror = (error) => {
-      if (import.meta.env.DEV) console.error('WebSocket error:', error);
-    };
-  };
+  const dataStale = !latestData?.timestamp || (Date.now() - new Date(latestData.timestamp).getTime()) / 1000 > 30;
+  const healthTone = dataStale ? 'stale' : wsConnected ? 'live' : 'offline';
 
   if (loading) {
     return (
@@ -102,35 +41,8 @@ function Dashboard() {
     );
   }
 
-  const activeAlerts = alerts.filter(a => a.status === 'active');
-  
-  // Check if data is stale (no updates for 30 seconds)
-  const isDataStale = () => {
-    if (!latestData?.timestamp) return true;
-    const lastUpdate = new Date(latestData.timestamp);
-    const now = new Date();
-    const timeDiff = (now - lastUpdate) / 1000; // seconds
-    return timeDiff > 30; // Consider stale after 30 seconds
-  };
-  
-  const getTimeSinceUpdate = () => {
-    if (!latestData?.timestamp) return 'Never';
-    const lastUpdate = new Date(latestData.timestamp);
-    const now = new Date();
-    const diffSeconds = Math.floor((now - lastUpdate) / 1000);
-    
-    if (diffSeconds < 60) return `${diffSeconds}s ago`;
-    const diffMinutes = Math.floor(diffSeconds / 60);
-    if (diffMinutes < 60) return `${diffMinutes}m ago`;
-    const diffHours = Math.floor(diffMinutes / 60);
-    return `${diffHours}h ago`;
-  };
-  
-  const dataStale = isDataStale();
-
   return (
-    <div className="dashboard grain-theme">
-      {/* Header */}
+    <div className="dashboard grain-theme" id="top">
       <header className="dashboard-header">
         <div className="container">
           <div className="header-content">
@@ -140,7 +52,7 @@ function Dashboard() {
                 Smart Grain Storage System
               </h1>
               <p className="header-subtitle">
-                Real-time grain storage monitoring with intelligent alerts
+                Real-time grain monitoring with a lighter dashboard backbone and clearer operator guidance.
               </p>
             </div>
             <div className="header-status">
@@ -149,7 +61,7 @@ function Dashboard() {
                 {wsConnected && !dataStale ? 'Live Monitoring' : dataStale ? 'Data Stale' : 'Offline'}
               </div>
               <div className="last-update">
-                Last update: {getTimeSinceUpdate()}
+                Last update: <LastUpdatedLabel timestamp={latestData?.timestamp} />
               </div>
               {activeAlerts.length > 0 && (
                 <div className="alert-badge">
@@ -163,27 +75,53 @@ function Dashboard() {
       </header>
 
       <div className="container dashboard-content">
-        {/* Data Stale Warning */}
+        <section className="mission-strip" id="overview">
+          <div className="mission-copy">
+            <p className="section-kicker">Dashboard</p>
+            <h2>Smart Grain Storage Monitoring System</h2>
+            <p>
+              Track temperature, humidity, and storage health inside grain warehouses. 
+              The system analyzes sensor data continuously and alerts operators before 
+              conditions become unsafe for stored grain.
+            </p>
+          </div>
+          <div className="mission-stats">
+            <div className={`mission-stat ${healthTone}`}>
+              <span>Connection</span>
+              <strong>{wsConnected && !dataStale ? 'Streaming' : dataStale ? 'Stale feed' : 'Reconnecting'}</strong>
+            </div>
+            <div className="mission-stat">
+              <span>Quality grade</span>
+              <strong>{quality?.grade || 'Waiting'}</strong>
+            </div>
+            <div className="mission-stat">
+              <span>Active alerts</span>
+              <strong>{activeAlerts.length}</strong>
+            </div>
+          </div>
+        </section>
+
         {dataStale && (
           <div className="stale-data-warning">
             <AlertCircle size={20} />
             <div>
               <strong>ESP32 Disconnected</strong>
-              <p>No data received for {getTimeSinceUpdate()}. Check your ESP32 connection.</p>
+              <p>No fresh reading has arrived recently. Check the ESP32 connection and power supply.</p>
             </div>
           </div>
         )}
 
-        {/* Quality Analysis Card */}
-        <section className="quality-section">
+        <section className="quality-layout" id="quality">
           <QualityCard quality={quality} />
+          <div id="insights">
+            <QualityInsights insight={insight} quality={quality} />
+          </div>
         </section>
 
-        {/* Sensor Cards */}
         <section className="sensor-grid">
           <SensorCard
             title="Storage Temperature"
-            value={latestData?.data?.temperature || latestData?.temperature || 0}
+            value={latestData?.temperature || 0}
             unit="°C"
             icon={<Thermometer />}
             color="#f59e0b"
@@ -192,7 +130,7 @@ function Dashboard() {
           />
           <SensorCard
             title="Storage Humidity"
-            value={latestData?.data?.humidity || latestData?.humidity || 0}
+            value={latestData?.humidity || 0}
             unit="%"
             icon={<Droplets />}
             color="#3b82f6"
@@ -201,7 +139,7 @@ function Dashboard() {
           />
           <SensorCard
             title="Motion Detection"
-            value={latestData?.data?.motion || latestData?.motion ? 'Detected' : 'Clear'}
+            value={latestData?.motion ? 'Detected' : 'Clear'}
             unit=""
             icon={<Eye />}
             color="#10b981"
@@ -218,49 +156,66 @@ function Dashboard() {
           />
         </section>
 
-        {/* 3D Visualization - Temporarily disabled */}
-        {/* <section className="visualization-section">
-          <div className="card">
-            <h2 className="section-title">
-              <Warehouse size={20} />
-              Grain Storage 3D View
-            </h2>
-            <SensorVisualization3D data={latestData?.data || latestData} />
-          </div>
-        </section> */}
-
-        {/* Charts */}
         <section className="charts-section">
-          <ChartCard
-            title="Temperature Monitoring"
-            data={historicalData}
-            dataKey="temperature"
-            color="#f59e0b"
-            unit="°C"
-          />
-          <ChartCard
-            title="Humidity Tracking"
-            data={historicalData}
-            dataKey="humidity"
-            color="#3b82f6"
-            unit="%"
-          />
+          <div className="section-intro">
+            <p className="section-kicker">Trend Memory</p>
+            <h2><LineChart size={20} /> Focused trend tracking</h2>
+            <p>Charts sit in their own section now, so they only update when sensor history changes.</p>
+          </div>
+          <div className="charts-grid">
+            <ChartCard
+              title="Temperature Monitoring"
+              data={historicalData}
+              dataKey="temperature"
+              color="#f59e0b"
+              unit="°C"
+            />
+            <ChartCard
+              title="Humidity Tracking"
+              data={historicalData}
+              dataKey="humidity"
+              color="#3b82f6"
+              unit="%"
+            />
+          </div>
         </section>
 
-        {/* 3D Grain Container Visualization */}
-        <section className="visualization-section">
-          <div className="card">
-            <h2 className="section-title">
-              <Warehouse size={20} />
-              3D Grain Storage Container
-            </h2>
+        <section className="visualization-section" id="visualization">
+          <div className="card visualization-shell">
+            <div className="visualization-header">
+              <div>
+                <p className="section-kicker">On-Demand Scene</p>
+                <h2 className="section-title">
+                  <Radar size={20} />
+                  3D Grain Storage Container
+                </h2>
+                <p className="visualization-copy">
+                  The 3D monitor only loads when requested, which cuts a lot of browser work during normal dashboard use.
+                </p>
+              </div>
+              <button className="btn btn-primary visualization-toggle" onClick={() => setShowVisualization((value) => !value)}>
+                {showVisualization ? 'Hide 3D View' : 'Load 3D View'}
+              </button>
+            </div>
+
             <ErrorBoundary>
-              <GrainContainer3D data={latestData?.data || latestData} />
+              {showVisualization ? (
+                <Suspense fallback={<div className="visualization-loading">Loading 3D monitor...</div>}>
+                  <GrainContainer3D data={latestData} />
+                </Suspense>
+              ) : (
+                <div className="visualization-placeholder">
+                  <Warehouse size={28} />
+                  <div>
+                    <strong>3D scene is paused</strong>
+                    <p>Open it only when you need a live spatial view of the storage container.</p>
+                  </div>
+                </div>
+              )}
             </ErrorBoundary>
           </div>
         </section>
 
-        {/* Alerts */}
         {alerts.length > 0 && (
           <section className="alerts-section">
             <div className="card">
@@ -277,29 +232,29 @@ function Dashboard() {
   );
 }
 
-// Helper function to calculate storage status
 function getStorageStatus(data) {
   if (!data) return 'Unknown';
-  const temp = data?.data?.temperature || data?.temperature || 0;
-  const humidity = data?.data?.humidity || data?.humidity || 0;
-  
+
+  const temp = data.temperature || 0;
+  const humidity = data.humidity || 0;
+
   if (temp > 35 || humidity > 70) return 'Critical';
   if (temp > 30 || humidity > 60) return 'Warning';
   if (temp < 15 || humidity < 30) return 'Suboptimal';
   return 'Optimal';
 }
 
-// Helper function to calculate trend
 function calculateTrend(data, key) {
   if (!data || data.length < 2) return 0;
-  
+
   const recent = data.slice(0, 10);
-  const values = recent.map(d => d[key]).filter(v => v !== undefined);
-  
-  if (values.length < 2) return 0;
-  
+  const values = recent.map((entry) => entry[key]).filter((value) => value !== undefined);
+
+  if (values.length < 2 || values[values.length - 1] === 0) return 0;
+
   const first = values[values.length - 1];
   const last = values[0];
+
   return ((last - first) / first * 100).toFixed(1);
 }
 

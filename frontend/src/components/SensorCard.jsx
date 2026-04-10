@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import './SensorCard.css';
 
@@ -43,4 +44,4 @@ function SensorCard({ title, value, unit, icon, color, trend, isBoolean, subtitl
   );
 }
 
-export default SensorCard;
+export default memo(SensorCard);

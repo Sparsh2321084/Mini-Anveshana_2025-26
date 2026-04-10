@@ -8,6 +8,7 @@
 const { checkThresholds } = require('../services/alertService');
 const { broadcastSensorData } = require('../services/websocketService');
 const { analyzeGrainQuality, formatQualityReport } = require('../services/qualityAnalysisService');
+const { generateStorageInsight } = require('../services/aiInsightService');
 
 // In-memory storage for latest sensor data
 let latestSensorData = {
@@ -17,10 +18,31 @@ let latestSensorData = {
   motion: false,
   timestamp: null,
   history: [], // Keep last 50 readings for charts
-  quality: null // Grain quality analysis
+  quality: null, // Grain quality analysis
+  insight: null,
+  insightMeta: {
+    lastGeneratedAt: 0
+  }
 };
 
 const MAX_HISTORY = 50; // Keep last 50 data points for frontend charts
+const AI_REFRESH_MS = Number.parseInt(process.env.AI_REFRESH_MS || '30000', 10);
+
+function shouldRefreshInsight(previousData, nextData, previousQuality, nextQuality, insightMeta) {
+  if (!insightMeta?.lastGeneratedAt) return true;
+
+  const now = Date.now();
+  if (now - insightMeta.lastGeneratedAt >= AI_REFRESH_MS) return true;
+
+  if ((previousQuality?.grade || '') !== (nextQuality?.grade || '')) return true;
+  if ((previousQuality?.status || '') !== (nextQuality?.status || '')) return true;
+
+  if (Math.abs((previousData?.humidity || 0) - (nextData?.humidity || 0)) >= 1.5) return true;
+  if (Math.abs((previousData?.temperature || 0) - (nextData?.temperature || 0)) >= 1) return true;
+  if (Boolean(previousData?.motion) !== Boolean(nextData?.motion)) return true;
+
+  return false;
+}
 
 /**
  * Receive sensor data from ESP32
@@ -28,6 +50,12 @@ const MAX_HISTORY = 50; // Keep last 50 data points for frontend charts
 exports.receiveSensorData = async (req, res) => {
   try {
     const { device_id, sensors, timestamp } = req.body;
+    const previousData = {
+      temperature: latestSensorData.temperature,
+      humidity: latestSensorData.humidity,
+      motion: latestSensorData.motion
+    };
+    const previousQuality = latestSensorData.quality;
     
     // Validate required fields
     if (!device_id || !sensors) {
@@ -70,6 +98,11 @@ exports.receiveSensorData = async (req, res) => {
     // Analyze grain quality based on humidity
     const qualityAnalysis = analyzeGrainQuality(newData, latestSensorData.history);
     latestSensorData.quality = formatQualityReport(qualityAnalysis);
+
+    if (shouldRefreshInsight(previousData, newData, previousQuality, latestSensorData.quality, latestSensorData.insightMeta)) {
+      latestSensorData.insight = await generateStorageInsight(newData, latestSensorData.quality, latestSensorData.history);
+      latestSensorData.insightMeta.lastGeneratedAt = Date.now();
+    }
     
     console.log(`  📊 Quality: ${qualityAnalysis.grade} (${qualityAnalysis.score}/100)`);
     if (qualityAnalysis.issues.length > 0) {
@@ -89,6 +122,7 @@ exports.receiveSensorData = async (req, res) => {
       deviceId: device_id,
       data: sensors,
       quality: latestSensorData.quality,
+      insight: latestSensorData.insight,
       alerts: alerts,
       timestamp: newData.timestamp
     });
@@ -97,7 +131,8 @@ exports.receiveSensorData = async (req, res) => {
       success: true,
       message: 'Data received successfully',
       alertsTriggered: alerts.length,
-      quality: latestSensorData.quality
+      quality: latestSensorData.quality,
+      insight: latestSensorData.insight
     });
     
   } catch (error) {
@@ -132,7 +167,8 @@ exports.getLatestData = async (req, res) => {
           motion: latestSensorData.motion,
           timestamp: latestSensorData.timestamp
         },
-        quality: latestSensorData.quality
+        quality: latestSensorData.quality,
+        insight: latestSensorData.insight
       });
     } catch (error) {
       console.error('Error fetching latest data:', error);
@@ -149,7 +185,8 @@ exports.getLatestData = async (req, res) => {
       humidity: latestSensorData.humidity,
       motion: latestSensorData.motion,
       timestamp: latestSensorData.timestamp,
-      quality: latestSensorData.quality
+      quality: latestSensorData.quality,
+      insight: latestSensorData.insight
     } : null;
   }
 };

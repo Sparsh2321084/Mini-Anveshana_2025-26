@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import './QualityCard.css';
 
 function QualityCard({ quality }) {
@@ -63,4 +63,4 @@ function QualityCard({ quality }) {
   );
 }
 
-export default QualityCard;
+export default memo(QualityCard);
