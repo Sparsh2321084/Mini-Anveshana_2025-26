@@ -70,13 +70,7 @@ function broadcastSensorData(data) {
   
   const message = JSON.stringify({
     type: 'sensor_update',
-    data: {
-      deviceId: data.deviceId,
-      ...(data.data || {}),
-      timestamp: data.timestamp
-    },
-    quality: data.quality,
-    alerts: data.alerts,
+    data: data,
     timestamp: new Date()
   });
   

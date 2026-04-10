@@ -131,8 +131,7 @@ exports.getLatestData = async (req, res) => {
           humidity: latestSensorData.humidity,
           motion: latestSensorData.motion,
           timestamp: latestSensorData.timestamp
-        },
-        quality: latestSensorData.quality
+        }
       });
     } catch (error) {
       console.error('Error fetching latest data:', error);
@@ -148,8 +147,7 @@ exports.getLatestData = async (req, res) => {
       temperature: latestSensorData.temperature,
       humidity: latestSensorData.humidity,
       motion: latestSensorData.motion,
-      timestamp: latestSensorData.timestamp,
-      quality: latestSensorData.quality
+      timestamp: latestSensorData.timestamp
     } : null;
   }
 };

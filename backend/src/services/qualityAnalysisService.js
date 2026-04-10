@@ -173,7 +173,6 @@ function shouldSendQualityAlert(analysis, lastAlertTime) {
 function formatQualityReport(analysis) {
   return {
     summary: `${analysis.status} - Quality Score: ${analysis.score}/100`,
-    status: analysis.status,
     grade: analysis.grade,
     score: analysis.score,
     color: analysis.color,
