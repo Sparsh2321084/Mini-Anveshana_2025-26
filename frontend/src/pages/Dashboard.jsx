@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Activity, Droplets, Thermometer, AlertCircle, TrendingUp, Eye, Warehouse, Database } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Droplets, Thermometer, AlertCircle, Eye, Warehouse, Database } from 'lucide-react';
 import SensorCard from '../components/SensorCard';
 import ChartCard from '../components/ChartCard';
 import AlertsList from '../components/AlertsList';
@@ -16,7 +16,7 @@ function Dashboard() {
   const [quality, setQuality] = useState(null);
   const [loading, setLoading] = useState(true);
   const [wsConnected, setWsConnected] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [, setCurrentTime] = useState(new Date());
 
   // Update current time every second to refresh "time ago" display
   useEffect(() => {
@@ -26,19 +26,7 @@ function Dashboard() {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch initial data
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 10000); // Update every 10 seconds
-    return () => clearInterval(interval);
-  }, []);
-
-  // WebSocket connection for real-time updates
-  useEffect(() => {
-    connectWebSocket();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [latest, history, alertsData] = await Promise.all([
         getLatestData(),
@@ -54,9 +42,9 @@ function Dashboard() {
       if (import.meta.env.DEV) console.error('Error fetching data:', error);
       setLoading(false);
     }
-  };
+  }, []);
 
-  const connectWebSocket = () => {
+  const connectWebSocket = useCallback(() => {
     const wsUrl = import.meta.env.VITE_WS_URL || 'wss://mini-anveshana-2025-26.onrender.com';
     const ws = new WebSocket(`${wsUrl}/ws`);
 
@@ -90,7 +78,22 @@ function Dashboard() {
     ws.onerror = (error) => {
       if (import.meta.env.DEV) console.error('WebSocket error:', error);
     };
-  };
+    
+    return ws;
+  }, []);
+
+  // Fetch initial data
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 10000); // Update every 10 seconds
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    const ws = connectWebSocket();
+    return () => ws.close();
+  }, [connectWebSocket]);
 
   if (loading) {
     return (

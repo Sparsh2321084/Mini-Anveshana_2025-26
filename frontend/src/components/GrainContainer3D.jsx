@@ -485,7 +485,6 @@ function TemperatureHologram({ temperature, position }) {
  */
 function HumidityHologram({ humidity, position }) {
   const ringRef = useRef();
-  const textRef = useRef();
   const glowRef = useRef();
   
   // Get color based on humidity level
